@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"cstddef": "cpp",
+			"typeinfo": "cpp",
+			"limits": "cpp",
+			"*.tcc": "cpp",
+			"cmath": "cpp",
+			"type_traits": "cpp"
+		}
+	}
+}
