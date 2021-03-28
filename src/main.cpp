@@ -22,7 +22,7 @@
 // ################################################
 // ### DEBUG CONFIGURATION
 // ################################################
-//#define KDEBUG // comment this line to disable DEBUG mode
+// #define KDEBUG // comment this line to disable DEBUG mode
 
 #ifdef KDEBUG
 #include <DebugUtil.h>
@@ -105,8 +105,6 @@ uint32_t color_BLUE = 0x0000FF;
 uint32_t color_ORANGE = 0xFFA500;
 uint32_t color_VIOLET = 0xBC13FE;
 uint32_t color_WHITE = 0xFFFFFF;
-
-
 
 //Adafruit_SSD1306 display = Adafruit_SSD1306(128, 32, &Wire);
 Adafruit_SSD1306 display = Adafruit_SSD1306(128, 64, &Wire, OLED_RESET_PIN);
@@ -315,6 +313,13 @@ void setup() {
 			storageOK = kmx_st.readGroup(grIndex);			// Lesen der Szenen-Parameter aus dem EEprom
 			kmx_st.clearStorageLightValues(grIndex, 0);	// Löschen LeuchtenWerte der Szene 0
 			kmx_st.clearStorageLightValues(grIndex, 1);	// Löschen LeuchtenWerte der Szene 1
+			
+			if (storageOK && kmx_st.store->ee_groups[grIndex].chksum != kmx_st.getChksum(grIndex)){
+				Debug.println(F("### clearStorageLightValues ######################################################"));
+				Debug.println(F("kmx EEprom Storage Chksum not ok - setChksum"));
+				kmx_st.setChksum(grIndex);					// Prüfsumme neu berechnen und in die vorgesehene Speicherzelle schreiben
+			}
+			
 			if (!storageOK)	// Eprom Daten konnten nicht exakt gelesen werden Prüfsummen-Fehler!
 			{
 				if (writeAttemps > 0)

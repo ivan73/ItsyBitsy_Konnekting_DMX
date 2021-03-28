@@ -28,7 +28,7 @@ bool kmx_storage::readGroup(uint8_t group_nr)
 	bool chksumOK;
 	int group_index = (int)(&store->ee_groups[group_nr]) - (int)(store);	// Differenz der beiden Pointer-Adressen
 	int ee_index = start_index + group_index;
-	Debug.println(F("read startindex: %d size:%d "), group_index, sizeof(ee_group));
+	Debug.println(F("read: index(%d) size(%d)"), group_index, sizeof(ee_group));
 
 	byte cks = 0;
 	storage_EEprom.read(0);	// beim Lesen eines Bytes wird fals init() noch nicht ausgeführt zuerst die Flash-Datei gelesen.
@@ -44,25 +44,25 @@ bool kmx_storage::readGroup(uint8_t group_nr)
 	}
 	else {
 		chksumOK = false;
-		DEBUG_PRINTLN(F("memRead: Chksum not ok Store-chksum=0x%02x chksum=0x%02x"),store->ee_groups[group_nr].chksum, cks);
+		DEBUG_PRINTLN(F("memRead: Chksum not ok Store-chksum(0x%02x) chksum(0x%02x)"),store->ee_groups[group_nr].chksum, cks);
 		//clearStorageLightValues(group_nr);
 	}
 
-	DEBUG_PRINTLN(F("memRead: index=0x%02x bytes=0x%02x chksum=0x%02x chksumOK:%d"), ee_index, sizeof(ee_group),cks, chksumOK);
+	DEBUG_PRINTLN(F("memRead: index(%d) bytes(%d) chksum(0x%02x) chksumOK(%d)"), ee_index, sizeof(ee_group),cks, chksumOK);
 	return chksumOK;
 }
 
 void kmx_storage::writeGroup(uint8_t group_nr) {
 	int group_index = (int)(&store->ee_groups[group_nr]) - (int)(store);	// Differenz der beiden Pointer-Adressen
 	int ee_index = start_index + group_index;
-	Debug.println(F("write startindex: %d size:%d "), group_index, sizeof(ee_group));
+	Debug.println(F("write: index(%d) size(%d)"), group_index, sizeof(ee_group));
 	storage_EEprom.setDirty();
 
 	// for( uint16_t i = 0; i < sizeof(ee_group); ++i ) {
 	//  	//writeMemory(ee_index+i, _buffer[group_index+i]);
 	// }
 	commitMemory();
-	DEBUG_PRINTLN(F("memWrite: index=0x%02x bytes=0x%02x chksum=0x%02x"), ee_index, sizeof(ee_group),store->ee_groups[group_nr].chksum);
+	DEBUG_PRINTLN(F("memWrite: index(%d) bytes(%d) chksum(0x%02x)"), ee_index, sizeof(ee_group),store->ee_groups[group_nr].chksum);
 }
 
 void kmx_storage::updateStorage()
@@ -78,7 +78,7 @@ void kmx_storage::updateStorage()
 	// }
 	storage_EEprom.setDirty();
 	commitMemory();
-	Debug.println(F("memUpdate: index=0x%02x bytes=0x%02x"), start_index, sizeof(EEPROMSTORAGE));
+	Debug.println(F("memUpdate: index(%d) bytes(%d)"), start_index, sizeof(EEPROMSTORAGE));
 }
 
 void kmx_storage::clearStorageLightValues(uint8_t group_nr, uint8_t szene)
@@ -116,27 +116,13 @@ void kmx_storage::update_actualScene(uint8_t group_nr, uint8_t actualScene)
 
 uint8_t kmx_storage::getChksum(uint8_t group_nr)
 {
-	// uint16_t group_index = group_nr*sizeof(ee_group);
-	// group_index += sizeof(store->actual_scenes);
-	// return chksum8(&_buffer[group_index+2], sizeof(ee_group)-2);
-
-	//int ofs = (int)(&kmx_st.store) - (int)(&kmx_st.store->ee_groups[0]);
-  	//Debug.println(F("kmx ofs: %d"), ofs);
-
-  	//ofs = (int)(&kmx_st.store) - (int)(&kmx_st.store->ee_groups[0].chksum);
-  	//Debug.println(F("kmx chks ofs: %d"), ofs);
-
-	//Debug.println(F("_buff Address: %x"), &_buffer);
-  	//Debug.println(F("kmx ee_group Address: %x"),  &kmx_st.store->ee_groups[0]);
-
 	int startindex = (int)(&store->ee_groups[group_nr]) - (int)(store) +1;	// Differenz der beiden Pointer-Adressen - 1.Byte nicht mitberechnen
+	//int startindex = (int)(&store->ee_groups[group_nr].chksum) - (int)(store);	// Differenz der beiden Pointer-Adressen - 1.Byte nicht mitberechnen
 	int size = sizeof(ee_group)-1;
-	//uint8_t cks = chksum8(&_buffer[startindex], size);
-	//uint8_t cks = store->ee_groups[group_nr].chksum
-	uint8_t cks = chksum8(&p_buffer[startindex], size);
-	
 
-	Debug.println(F("getChksum startindex(%d) size(%d) chksum(%d)"), startindex, size, cks);
+	uint8_t cks = chksum8(&p_buffer[startindex], size);
+
+	Debug.println(F("getChksum: index(%d) size(%d) chksum(0x%02x)"), startindex, size, cks);
 	return cks;
 }
 
@@ -144,7 +130,7 @@ void kmx_storage::setChksum(uint8_t group_nr)
 {
 	uint8_t cks = getChksum(group_nr);
 	store->ee_groups[group_nr].chksum = cks;
-	Debug.println(F("setChksum group(%d) chksum(%d) "), group_nr, cks);
+	Debug.println(F("setChksum: group(%d) chksum(0x%02x) "), group_nr, cks);
 }
 
 uint8_t kmx_storage::chksum8(const byte *buff, size_t len)
@@ -173,7 +159,7 @@ void kmx_storage::updateMemory(int index, uint8_t val) {
 	//return EEPROM.update(index, val);
 	int old = readMemory(index);
 	if(old != val){
-		Debug.println(F("writeMemory index(0x%02x) oldVal(0x%02x) newVal(0x%02x)"), index, old, val);
+		Debug.println(F("writeMemory: index(%d) oldVal(0x%02x) newVal(0x%02x)"), index, old, val);
 		writeMemory(index,val);
 	}
 }

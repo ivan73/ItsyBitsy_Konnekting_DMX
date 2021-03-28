@@ -114,14 +114,9 @@ public:
     void setMemoryUpdateFunc(void (*func)(int, uint8_t));
     void setMemoryCommitFunc(void (*func)(void));
 
-    bool init(HardwareSerial& serial, 
-                int progButtonPin, 
-                int progLedPin, 
-                word manufacturerID, 
-                byte deviceID, 
-                byte revisionID
-                );
-
+    //void init(HardwareSerial& serial, int progButtonPin, int progLedPin, word manufacturerID, byte deviceID, byte revisionID);
+    bool init(HardwareSerial& serial, int progButtonPin, int progLedPin, word manufacturerID, byte deviceID, byte revisionID);
+    
     /**
      * needs to be called in "void konnektingKnxEvents(byte index)" to check if ComObject is
      * an internal ComObject which is not needed to be handled by developer

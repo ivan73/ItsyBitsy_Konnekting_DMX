@@ -45,12 +45,12 @@ void kmx_group::setScene(uint8_t scene)
 
 	if (scene > used_scenes)
 	{
-		Debug.println(F("(%d %s) scene not set: (%d) - group has only (%d) scenes"), _groupIndex, _name, scene, used_scenes);
+		Debug.println(F("(%d %s) scene not set(%d) - group has only (%d) scenes"), _groupIndex, _name, scene, used_scenes);
 		return;
 	}
 	 
 	//_scene = scene;
-	Debug.println(F("(%d %s) set scene: (%d) group max scenes (%d)"), _groupIndex, _name, scene, used_scenes);
+	Debug.println(F("(%d %s) set scene(%d) manu(%d) group max scenes (%d)"), _groupIndex, _name, scene, _isManual, used_scenes);
 	int i = 0;
 	
 	if (scene == 0)
@@ -118,30 +118,29 @@ void kmx_group::setScene(uint8_t scene)
 	_lastmillisPM = millis();
 }
 
-void kmx_group::setSwitchPM(bool value)
-{
-	unsigned long differenz = 0;
-	
-	differenz =  millis() -_lastmillisPM;
+void kmx_group::setSwitchPM(bool value) {
+	unsigned long differenzManu = millis() -_lastmillisManual;
 	_switchPM = value;
-	
-	if (value && _scene < 2 && !_sleep)
-	{
-		if (_isManual && differenz > (_offDelay*1000))	// Beleuchtung Manuell(=Taster) eingeschalten und Wartzeit schon um?
+	_lastmillisPM = millis();
+	Debug.println(F("(%d %s) PM getriggert - Reset Nachlaufzeit(%d) PM1:(%d) PM2:(%d) PM:(%d) man(%d) t:(%d)"), _groupIndex, _name, _offDelay, _switchPM1, _switchPM2, _switchPM, _isManual, differenzManu/1000);
+
+	if (_isManual) {									// Manueller Modus aktiv (Taster)
+		if (!value && differenzManu > (_offDelay*1000)) {			// Manueller ModusWartzeit schon um?
 			_isManual = false;							// beenden des Manuellen Modus
-		
-		if (!_isManual)									// Beleuchtung NICHT Manuell(=Taster)?
-		{
-			if (_night)									// Nachtmodus?
+			Debug.println(F("(%d %s) Manueller Modus AUS"), _groupIndex, _name);
+		}
+		else {
+			_lastmillisManual = millis();
+			Debug.println(F("(%d %s) PM retrigger Manueller Modus"), _groupIndex, _name);
+		}
+
+	}
+	else if (value && _scene < 2 && !_sleep) {	// Manueller Modus NICHT aktiv und keine Szene aktiv
+		if (_night)										// Nachtmodus?
 				setScene(_scenePMnight);
 			else
 				setScene(_scenePM);
-		}
-		else
-			Debug.println(F("(%d %s) PM getriggert jedoch Nachlaufzeit(%d) noch nicht um(%d))"), _groupIndex, _name, _offDelay, differenz/1000);
 	}
-	Debug.println(F("(%d %s) PM getriggert - Reset Nachlaufzeit(%d) PM1:(%d) PM2:(%d) PM:(%d) man(%d) t:(%d)"), _groupIndex, _name, _offDelay, _switchPM1, _switchPM2, _switchPM, _isManual, differenz/1000);
-	_lastmillisPM = millis();
 }
 
 void kmx_group::setSwitchPM1(bool value)
@@ -286,8 +285,13 @@ bool kmx_group::verify()
 	differenzPM = millis() -_lastmillisPM;
 	differenzManual = millis() -_lastmillisManual;
 
+	if (_isManual && differenzManual > offDelayMillis) 	{
+		_isManual = false;
+		_lastmillisPM = millis();
+	}
+
 	// Nachlauf PM und manual beendet
-	if (_scene > 1 && !_switchPM && !_sleep && differenzManual > offDelayMillis && differenzPM > offDelayMillis && !_isContinous && !_isEmergency)
+	if (_scene > 1 && !_isManual&& !_switchPM && !_sleep && differenzManual > offDelayMillis && differenzPM > offDelayMillis && !_isContinous && !_isEmergency) 
 		setScene(1);
 
 	return true;
