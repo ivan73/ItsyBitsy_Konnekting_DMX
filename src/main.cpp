@@ -22,7 +22,7 @@
 // ################################################
 // ### DEBUG CONFIGURATION
 // ################################################
-// #define KDEBUG // comment this line to disable DEBUG mode
+//#define KDEBUG // comment this line to disable DEBUG mode
 
 #ifdef KDEBUG
 #include <DebugUtil.h>
@@ -55,6 +55,8 @@
 Bounce buttonUp = Bounce(); 
 Bounce buttonDown = Bounce(); 
 
+#define SECONDS_OLED_SCROLL 60
+#define SECONDS_OLED_OFF 600
 
 // ################################################
 // ### Global variables, sketch related
@@ -64,6 +66,9 @@ unsigned long lastmillis = millis();
 unsigned long currentmillis = millis();
 unsigned long currentmicros = micros();
 unsigned int seconds = 0;
+unsigned int secondsDisplay = 0;
+unsigned int yOffsetDisplay = 16;
+
 
 uint8_t grFade = 0;
 uint16_t FreeEepromOffset = 0xFFFF;
@@ -184,10 +189,10 @@ void setup() {
 
 	display.setTextSize(1);	  // text display
 	display.setTextColor(SSD1306_WHITE);
-	display.setCursor(0,0);
+	display.setCursor(0,16);
 	display.print("Konnekting_DMX\n");
 	display.print("setup");
-	display.setCursor(0,0);
+	display.setCursor(0,16);
 	display.display();
 	delay(1000);
 
@@ -213,7 +218,7 @@ void setup() {
 			if (knx_device_init_attempts == 0)
 				Konnekting.init(KNX_SERIAL, PROG_BUTTON_PIN, PROG_LED_PIN, MANUFACTURER_ID, DEVICE_ID, REVISION);
 			knx_device_ok = false;
-			display.setCursor(0,0);
+			display.setCursor(0,16);
 			display.clearDisplay();
 			display.print("KNX keine Spannung!");
 			display.display();
@@ -256,7 +261,7 @@ void setup() {
 
 	if (Konnekting.isProgState()) {
 		Debug.print(F("device in ProgState\n"));
-		display.setCursor(0,0);
+		display.setCursor(0,16);
 		display.clearDisplay();
 		display.print("device in ProgState");
 		display.display();
@@ -404,10 +409,11 @@ void setup() {
 	lastmillis = millis();
 	Debug.println(F("Setup is ready. go to loop..."));
 
-	display.setCursor(0,0);
+	display.setCursor(0,16);
 	display.clearDisplay();
 	display.print("Setup is ready. go to loop...");
 	display.display();
+
 	if (!knx_device_ok)
 	{
 		kmxMenu.setEmergency(true);
@@ -508,9 +514,29 @@ void loop() {
 				knx_device_init_attempts = 0;
 		}
 
+		if (secondsDisplay == 0){
+			Debug.println(F("Display ON"));
+			display.ssd1306_command(SSD1306_DISPLAYON);
+		}
+
+		if (secondsDisplay <= SECONDS_OLED_OFF)
+			secondsDisplay++;
+
+		if (secondsDisplay%SECONDS_OLED_OFF==0){
+			Debug.println(F("Display OFF"));
+			display.ssd1306_command(SSD1306_DISPLAYOFF);
+		}
+
+		if (secondsDisplay%SECONDS_OLED_SCROLL==0){
+			Debug.println(F("Display scroll yOffset (%d) "), yOffsetDisplay);
+			yOffsetDisplay++;
+			if (yOffsetDisplay > 16+10)
+				yOffsetDisplay = 16;
+		}
+		
+
 		if (!Konnekting.isActive())
 			Debug.print(F("Konnekting is not active: \n"));
-
 
 		lastmillis = currentmillis;
 	}
@@ -617,7 +643,8 @@ void knxEvents(byte index) {
 				}
 				p_group = &kmx_gr[groupId];
 				p_group->handleMsg(msgBuffer);
-				display.setCursor(0,0);
+				secondsDisplay = 0;
+				display.setCursor(0,yOffsetDisplay);
 				display.clearDisplay();
 				display.println( kmxMenu.getCurrentMenu().getName());
 				display.print(kmx_gr[groupId].getName());
@@ -642,7 +669,7 @@ void writeSceneToKNX(int group_index, uint8_t scene)
 		byte comobj_index = COMOBJ_kmx_gr0_scene + kmx_para_lengh_CommObjects* group_index;
 		Debug.println(F("write to KNX: Scene(%d) from group(%d %s) "), scene, group_index, kmx_gr[group_index].getName());
 		Knx.write(comobj_index, (int)scene);
-		display.setCursor(0,0);
+		display.setCursor(0,yOffsetDisplay);
 		display.clearDisplay();
 		display.println( kmxMenu.getCurrentMenu().getName());
 		display.print(kmx_gr[group_index].getName());
@@ -655,7 +682,7 @@ void writeSceneToKNX(int group_index, uint8_t scene)
 		// display.println(("%s(%d)", kmx_gr[group_index].getName(), group_index));
 		//display.println(("writeKnx-Szene(%d)", scene));
 		//display.getTextBounds()
-		display.setCursor(0,4);
+		display.setCursor(0,yOffsetDisplay+4);
 		display.display();
 	}
 }
@@ -694,13 +721,20 @@ void writeChannelValueToKNX(int group_index, uint8_t channel, byte val)
 
 void manualScene(ManualSceneEvent sceneEvent)
 {
+	if (secondsDisplay > SECONDS_OLED_OFF){
+		Debug.println(F("secondsDisplay = 0"));
+		secondsDisplay = 0;
+		return;
+	}
+
 	Debug.print(F("ManualSceneEvent gr(%d) sz(%d) (%s)\n"), sceneEvent.groupIncDec, sceneEvent.sceneIncDec, sceneEvent.current->getName());
 
 	display.clearDisplay();
-	display.setCursor(0,0);
+	display.setCursor(0,yOffsetDisplay);
 	display.println(sceneEvent.current->getName());
 
 	if (strcmp(sceneEvent.current->getName(), miWorking.getName()) == 0) {
+		
 		Debug.println(F("miWorking"));
 		workingState = true;
 		for (unsigned int iGr=0; iGr<kmx_para_groups; iGr++) {
