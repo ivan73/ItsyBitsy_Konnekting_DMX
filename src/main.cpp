@@ -64,6 +64,7 @@ unsigned long lastmillis = millis();
 unsigned long currentmillis = millis();
 unsigned long currentmicros = micros();
 unsigned int seconds = 0;
+unsigned int secondsDisplay = 0;
 
 uint8_t grFade = 0;
 uint16_t FreeEepromOffset = 0xFFFF;
@@ -508,6 +509,13 @@ void loop() {
 				knx_device_init_attempts = 0;
 		}
 
+		secondsDisplay++;
+		if (secondsDisplay > 120){
+			display.clearDisplay();
+			secondsDisplay = 0;
+		}
+
+
 		if (!Konnekting.isActive())
 			Debug.print(F("Konnekting is not active: \n"));
 
@@ -617,6 +625,7 @@ void knxEvents(byte index) {
 				}
 				p_group = &kmx_gr[groupId];
 				p_group->handleMsg(msgBuffer);
+				secondsDisplay = 0;
 				display.setCursor(0,0);
 				display.clearDisplay();
 				display.println( kmxMenu.getCurrentMenu().getName());
@@ -642,6 +651,7 @@ void writeSceneToKNX(int group_index, uint8_t scene)
 		byte comobj_index = COMOBJ_kmx_gr0_scene + kmx_para_lengh_CommObjects* group_index;
 		Debug.println(F("write to KNX: Scene(%d) from group(%d %s) "), scene, group_index, kmx_gr[group_index].getName());
 		Knx.write(comobj_index, (int)scene);
+		secondsDisplay = 0;
 		display.setCursor(0,0);
 		display.clearDisplay();
 		display.println( kmxMenu.getCurrentMenu().getName());
@@ -696,6 +706,7 @@ void manualScene(ManualSceneEvent sceneEvent)
 {
 	Debug.print(F("ManualSceneEvent gr(%d) sz(%d) (%s)\n"), sceneEvent.groupIncDec, sceneEvent.sceneIncDec, sceneEvent.current->getName());
 
+	secondsDisplay=0;
 	display.clearDisplay();
 	display.setCursor(0,0);
 	display.println(sceneEvent.current->getName());
